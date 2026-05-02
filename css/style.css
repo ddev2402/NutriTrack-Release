@@ -491,6 +491,7 @@ ul {
   display: none;
   padding: 20px 16px calc(var(--nav-height) + 20px);
   min-height: 100vh;
+  min-height: 100dvh; /* BUG 10 FIX: dynamic viewport height respects virtual keyboard on mobile */
 }
 
 .page.active {
@@ -2381,7 +2382,7 @@ body.dark-theme .fav-quick-cal {
 }
 
 .btn-quick-add {
-  background: var(--primary);
+  background: var(--emerald-500); /* BUG 4 FIX: was var(--primary) which is undefined */
   color: white;
   border: none;
   padding: 6px 12px;
@@ -3877,6 +3878,18 @@ body.dark-theme {
   --glass-border: rgba(255, 255, 255, 0.1);
 }
 
+/* BUG 5 FIX: Goal icons in onboarding use hardcoded light backgrounds; force dark icon color for readability */
+body.dark-theme .goal-icon {
+  color: #1f2937 !important;
+}
+
+/* BUG 5 FIX: Macro pills inside results-card (green gradient bg) need explicit white text in dark mode */
+body.dark-theme .results-card .macro-pill {
+  background: rgba(255, 255, 255, .15);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, .2);
+}
+
 /* ============================================================
    DARK MODE - COMPONENT OVERRIDES PARA CONTRASTE
    ============================================================ */
@@ -3995,72 +4008,8 @@ body.dark-theme .form-input {
 /* ============================================================
    FAVORITES MODAL — BASE STYLES
    ============================================================ */
-.fav-quick-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--gray-100);
-  transition: background .15s ease;
-}
-
-.fav-quick-item:last-child {
-  border-bottom: none;
-}
-
-.fav-quick-item:hover {
-  background: var(--gray-50);
-}
-
-.fav-quick-name {
-  font-size: .9rem;
-  font-weight: 700;
-  color: var(--gray-800);
-  margin-bottom: 2px;
-}
-
-.fav-quick-cal {
-  font-size: .78rem;
-  color: var(--gray-500);
-}
-
-.fav-quick-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.btn-quick-add {
-  font-size: .78rem;
-  font-weight: 700;
-  padding: 5px 10px;
-  border-radius: 8px;
-  background: var(--emerald-500, #10b981);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: opacity .15s;
-}
-
-.btn-quick-add:hover {
-  opacity: .85;
-}
-
-.btn-quick-rem {
-  font-size: .85rem;
-  padding: 5px 8px;
-  border-radius: 8px;
-  background: #fef2f2;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-  cursor: pointer;
-  transition: background .15s;
-}
-
-.btn-quick-rem:hover {
-  background: #fee2e2;
-}
+/* BUG 6 FIX: duplicate .fav-quick-item definitions removed — canonical rules kept at lines ~2338-2376 */
+/* Duplicate .btn-quick-add / .btn-quick-rem blocks below are kept as overrides for the favorites modal */
 
 /* Animación de pop al guardar/quitar favorito en búsqueda */
 @keyframes fav-pop {

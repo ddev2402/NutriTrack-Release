@@ -34,7 +34,7 @@ export function setGreeting() {
   if (elDate) elDate.textContent = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 export function navigateTo(page) {
-  if (typeof closeScannerModal === 'function') closeScannerModal();
+  closeScannerModal();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById(`page-${page}`);
   if (target) target.classList.add('active');
@@ -418,7 +418,7 @@ export async function saveEditedAIFoods() {
 }
 export function setupAIEditorListeners() {
   const gramsInput = document.getElementById('ai-edit-grams');
-  
+
   // Escuchar cambios en el input de gramos
   gramsInput?.addEventListener('input', (e) => {
     const foods = App._pendingAIFoods;
@@ -435,7 +435,7 @@ export function setupAIEditorListeners() {
     }
 
     const newGrams = Math.max(0, Math.round(Number(e.target.value) || 0));
-    
+
     // 2. Recalcular proporciones si la base es mayor a 0
     if (current._base_grams > 0) {
       const ratio = newGrams / current._base_grams;
@@ -458,7 +458,7 @@ export function setupAIEditorListeners() {
   ['ai-edit-kcal', 'ai-edit-protein', 'ai-edit-carbs', 'ai-edit-fat'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', () => {
       persistCurrentAIFoodFromForm();
-      
+
       // Si el usuario edita un macro manualmente, actualizamos la base para
       // que futuros cambios de gramos partan de esta nueva configuración
       const current = App._pendingAIFoods?.[App.aiEditorIndex];
@@ -539,11 +539,11 @@ Responde en español, 1-2 frases cortas y motivadoras. Da UNA recomendación esp
   } catch (e) {
     if (textEl) {
       textEl.textContent = generateLocalInsight(totals, { cal: goal, prot: pGoal, carbs: cGoal, fat: fGoal });
-      textEl.style.display = 'block';
     }
   } finally {
     if (thinkEl) thinkEl.style.display = 'none';
-    if (textEl) textEl.style.display = 'block';
+    // BUG 1 FIX: only show textEl if it has content to avoid blank visible element
+    if (textEl && textEl.textContent) textEl.style.display = 'block';
   }
 }
 export function generateLocalInsight(totals, goals) {
@@ -623,7 +623,7 @@ export function getFavorites() {
         return migrated;
       }
     }
-  } catch (_) {}
+  } catch (_) { }
   return [];
 }
 // Recibe el id del log Y la referencia al botón para actualizar su texto en tiempo real
@@ -977,10 +977,17 @@ export function updateCaloriesRing(consumed, goal) {
   const color = over ? '#ef4444' : 'rgba(255,255,255,.9)';
 
   if (App.caloriesRingChart) {
-    App.caloriesRingChart.data.datasets[0].data = [displayConsumed, displayRemain];
-    App.caloriesRingChart.data.datasets[0].backgroundColor = [color, 'rgba(255,255,255,.2)'];
-    App.caloriesRingChart.update('none');
-    return;
+    // BUG 2 FIX: verify canvas is still in the DOM before reusing the chart instance
+    const canvasEl = document.getElementById('calories-ring');
+    if (!canvasEl || App.caloriesRingChart.canvas !== canvasEl) {
+      App.caloriesRingChart.destroy();
+      App.caloriesRingChart = null;
+    } else {
+      App.caloriesRingChart.data.datasets[0].data = [displayConsumed, displayRemain];
+      App.caloriesRingChart.data.datasets[0].backgroundColor = [color, 'rgba(255,255,255,.2)'];
+      App.caloriesRingChart.update('none');
+      return;
+    }
   }
 
   App.caloriesRingChart = new Chart(ctx.getContext('2d'), {
@@ -1306,8 +1313,9 @@ export async function logWeight() {
   showToast(`Peso registrado: ${weight} kg`, 'success');
   if (input) input.value = '';
 
-  [App.weightChartInst, App.caloriesChartInst].forEach(c => { if (c) { c.destroy(); } });
-  App.weightChartInst = App.caloriesChartInst = null;
+  // BUG 3 FIX: destroy individually to avoid chained-null masking errors; do NOT touch caloriesRingChart (belongs to dashboard)
+  if (App.weightChartInst) { App.weightChartInst.destroy(); App.weightChartInst = null; }
+  if (App.caloriesChartInst) { App.caloriesChartInst.destroy(); App.caloriesChartInst = null; }
   refreshProgress();
 }
 export function refreshProfile() {
@@ -1758,17 +1766,17 @@ export function toggleFavorite(food) {
     // No existe → agregar con datos completos
     const ratio = (food.defaultServingGrams || 100) / 100;
     favs.push({
-      id:       'fav_' + Date.now(),
+      id: 'fav_' + Date.now(),
       food_name: nameToMatch,
-      quantity:  food.quantity  ?? food.defaultServingGrams ?? 100,
-      calories:  food.calories  !== undefined ? food.calories  : Math.round((food.calories_per_100g  || 0) * ratio),
-      protein:   food.protein   !== undefined ? food.protein   : parseFloat(((food.protein_per_100g  || 0) * ratio).toFixed(1)),
-      carbs:     food.carbs     !== undefined ? food.carbs     : parseFloat(((food.carbs_per_100g    || 0) * ratio).toFixed(1)),
-      fat:       food.fat       !== undefined ? food.fat       : parseFloat(((food.fat_per_100g      || 0) * ratio).toFixed(1)),
-      fiber:     food.fiber     !== undefined ? food.fiber     : parseFloat(((food.fiber_per_100g    || 0) * ratio).toFixed(1)),
-      sugar:     food.sugar     !== undefined ? food.sugar     : parseFloat(((food.sugar_per_100g    || 0) * ratio).toFixed(1)),
-      source:    food.source || 'manual',
-      savedAt:   Date.now(),   // metadato para debug/ordenación futura
+      quantity: food.quantity ?? food.defaultServingGrams ?? 100,
+      calories: food.calories !== undefined ? food.calories : Math.round((food.calories_per_100g || 0) * ratio),
+      protein: food.protein !== undefined ? food.protein : parseFloat(((food.protein_per_100g || 0) * ratio).toFixed(1)),
+      carbs: food.carbs !== undefined ? food.carbs : parseFloat(((food.carbs_per_100g || 0) * ratio).toFixed(1)),
+      fat: food.fat !== undefined ? food.fat : parseFloat(((food.fat_per_100g || 0) * ratio).toFixed(1)),
+      fiber: food.fiber !== undefined ? food.fiber : parseFloat(((food.fiber_per_100g || 0) * ratio).toFixed(1)),
+      sugar: food.sugar !== undefined ? food.sugar : parseFloat(((food.sugar_per_100g || 0) * ratio).toFixed(1)),
+      source: food.source || 'manual',
+      savedAt: Date.now(),   // metadato para debug/ordenación futura
     });
     LS.set('favorites', favs);
     showToast('¡Guardado en favoritos!', 'success');

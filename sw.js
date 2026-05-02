@@ -44,6 +44,9 @@ self.addEventListener('install', (event) => {
           )
         );
       })
+      /* BUG 7 FIX: catch addAll failures so skipWaiting() is always reached.
+         Without this, if a local asset is missing the SW stays stuck in 'installing'. */
+      .catch(() => { /* addAll local falló — continuar de todos modos */ })
       .then(() => self.skipWaiting())
   );
 });
